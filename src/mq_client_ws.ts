@@ -8,6 +8,7 @@ import { mRandomInteger } from "./Helper/NumberH";
 import { mWait } from "./Helper/WaitH";
 import { coreApi, MsgStrT, MsgT } from "./Config/MainConfig";
 import { QuerySys } from "@a-a-game-studio/aa-front";
+import { MqClientSys } from "./System/MqClientSys";
 
 var SERVER_PORT = 8080;
 var ADDR = "127.0.0.1";
@@ -16,8 +17,10 @@ let iConnect = 0;
 
 async function run(){
 
-    const querySys = new QuerySys()
-    querySys.fConfigWs(coreApi);
+    const mqClientSys = new MqClientSys(<any>coreApi)
+
+    // const querySys = new QuerySys()
+    // querySys.fConfigWs(coreApi);
 
 
     /** Инициализация страницы */
@@ -29,14 +32,18 @@ async function run(){
     for (let i = 0; i < 10000; i++) {
         const sMsg = '['+i+'] СообщениЕ ['+i+']';
 
+        mqClientSys.send('test', {text:sMsg});
+
+        process.stdout.write('.');
+
     
-        const ab = Buffer.from([
-            MsgT.send,
-            'statement'.length,
-            ...Buffer.from('statement'),
-            ...Buffer.alloc(4, sMsg.length),
-            ...Buffer.from(sMsg)
-        ])
+        // const ab = Buffer.from([
+        //     MsgT.send,
+        //     'statement'.length,
+        //     ...Buffer.from('statement'),
+        //     ...Buffer.alloc(4, sMsg.length),
+        //     ...Buffer.from(sMsg)
+        // ])
 
         // console.log('тип', MsgT.send);
         // console.log('длинна', 'statement'.length);
@@ -45,16 +52,16 @@ async function run(){
 
         // console.log(i,ab);
 
-        querySys.fInit();
-        querySys.fActionOk((data: any) => {
-            process.stdout.write('.');
-            // console.log('[>>>Ответ<<<]');
-            // console.log(data);
-        });
-        querySys.fActionErr((err:any) => {
-            console.error(err);
-        });
-        querySys.fSend('/send', {msg:sMsg});
+        // querySys.fInit();
+        // querySys.fActionOk((data: any) => {
+        //     process.stdout.write('.');
+        //     // console.log('[>>>Ответ<<<]');
+        //     // console.log(data);
+        // });
+        // querySys.fActionErr((err:any) => {
+        //     console.error(err);
+        // });
+        // querySys.fSend('/send', {msg:sMsg});
 
         
         

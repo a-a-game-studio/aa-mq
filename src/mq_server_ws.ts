@@ -2,42 +2,20 @@
 import { AAContext, AARoute, AAServer } from '@a-a-game-studio/aa-server';
 import { MsgStrT, MsgT } from './Config/MainConfig';
 import ParseBodyMiddleware from './Middleware/ParseBodyMiddleware';
+import { MqServerSys } from './System/MqServerSys';
+import { faSendRouter } from './System/ResponseSys';
 
 var SERVER_PORT = 8080;
 var SERVER_HOST = "127.0.0.1";
 
 let cntConnect = 0;
 
-let iQueEnd = 0;
-let iQueStart = 0;
-const aQueue:string[] = [];
+const gMqServerSys = new MqServerSys();
+
 
 // =============================================================
 // var remoteSocket = new net.Socket();
 let bConnect = false;
-
-/**
- * Функция рендера страницы
- * @param faCallback - функция контролера
- */
- export const faSendRouter = async (ctx: AAContext, data:any): Promise<boolean> => {
-	try {
-		
-        ctx.ws.send(JSON.stringify({
-            ok: true,
-            e: false,
-            data: data
-        }));
-	} catch (e) {
-        ctx.err.errorEx(e, ctx.req.url, 'Ошибка маршрута');
-		ctx.error(500);
-	}
-
-    return false;
-};
-
-
-
 
 const app = new AAServer();
 // if (config.common.env === 'dev' || config.common.env === 'test') {
@@ -47,43 +25,13 @@ const app = new AAServer();
     });
 // }
 
-let giQueStart = 0;
-let giQueEnd = 0;
-const ixQueue:Record<string, Record<number, any>> = {};
+
    
 const router = new AARoute();
 
 // app.use(ParseBodyMiddleware);
 
-function fQueGet(sQue:string){
-    let iQueStart = 0;
-    if(giQueEnd > giQueStart){
-        iQueStart = giQueStart++;
-    }
 
-    
-    
-    if(!ixQueue[sQue]){
-        ixQueue[sQue] = {};
-    }
-    
-
-    const data = ixQueue[sQue][iQueStart];
-    delete ixQueue[sQue][iQueStart];
-
-    return data;
-
-    
-}
-
-function fQuePush(sQue:string, data:any){
-    const iQueEnd = giQueEnd++
-    if(!ixQueue[sQue]){
-        ixQueue[sQue] = {};
-    }
-
-    ixQueue[sQue][iQueEnd] = data;
-}
 
 /**
  * узнать баланс счёта орга
@@ -92,7 +40,7 @@ function fQuePush(sQue:string, data:any){
     // console.log(ctx.body)
     // console.log('Это вопрос от клиента')
 
-    const data = fQueGet('def');
+    const data = gMqServerSys.get(ctx.body.queue);
     console.log('ask>>>', data)
 
     // if(data){
@@ -109,13 +57,13 @@ function fQuePush(sQue:string, data:any){
  * узнать баланс счёта орга
  */
 router.ws(MsgStrT.send, async (ctx: AAContext) => {
-    // console.log('send>>',giQueEnd - giQueStart, ctx.body)
-    if(giQueEnd % 1000 == 0){
-        console.log('send>>',giQueEnd - giQueStart)
-    }
+    console.log('send>>', ctx.body)
+    // if(giQueEnd % 1000 == 0){
+    //     console.log('send>>',giQueEnd - giQueStart)
+    // }
     // console.log('Это вопрос от клиента')
     
-    fQuePush('def', ctx.body);
+    gMqServerSys.set(ctx.body.queue, ctx.body.msg);
     // console.log('que>>',ixQueue);
 
     // ctx.ws.send(JSON.stringify({

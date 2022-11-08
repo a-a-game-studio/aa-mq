@@ -12,12 +12,12 @@ export enum MsgT {
 }
 
 export enum MsgStrT {
-    connect = 'connect', // Сообщение о соединении
-    check = 'check', // Проверка соединения
+    connect = '/connect', // Сообщение о соединении
+    check = '/check', // Проверка соединения
     send = '/send', // Отправить сообщение
     ask = '/ask', // Получить сообщение
-    count = 'count', // Количество сообщений
-    info = 'info' // Информация по очереди 
+    count = '/count', // Количество сообщений
+    info = '/info' // Информация по очереди 
 }
 
 // Сообщение в байт 256
