@@ -3,7 +3,9 @@ import { AAContext, AARoute, AAServer } from '@a-a-game-studio/aa-server';
 import { MsgStrT, MsgT } from './Config/MainConfig';
 import ParseBodyMiddleware from './Middleware/ParseBodyMiddleware';
 import { MqServerSys } from './System/MqServerSys';
-import { faSendRouter } from './System/ResponseSys';
+import { faSendRouter as faSend } from './System/ResponseSys';
+
+import ip from 'ip'
 
 var SERVER_PORT = 8080;
 var SERVER_HOST = "127.0.0.1";
@@ -32,38 +34,20 @@ const router = new AARoute();
 // app.use(ParseBodyMiddleware);
 
 
-
 /**
- * узнать баланс счёта орга
+ * Приход сообщений
  */
- router.ws(MsgStrT.ask, async (ctx: AAContext) => {
-    // console.log(ctx.body)
-    // console.log('Это вопрос от клиента')
+ router.ws(MsgStrT.send, async (ctx: AAContext) => {
 
-    const data = gMqServerSys.get(ctx.body.queue);
-    console.log('ask>>>', data)
-
-    // if(data){
-        return faSendRouter(ctx, data);
-    // } else {
-    //     return faSendRouter(ctx, {msg:'нет сообщений'});
-    // }
-
-    
-});
-
-
-/**
- * узнать баланс счёта орга
- */
-router.ws(MsgStrT.send, async (ctx: AAContext) => {
     console.log('send>>', ctx.body)
+    console.log('IP',ctx.body.ip);
+
     // if(giQueEnd % 1000 == 0){
     //     console.log('send>>',giQueEnd - giQueStart)
     // }
     // console.log('Это вопрос от клиента')
     
-    gMqServerSys.set(ctx.body.queue, ctx.body.msg);
+    gMqServerSys.set(ctx.body);
     // console.log('que>>',ixQueue);
 
     // ctx.ws.send(JSON.stringify({
@@ -72,9 +56,46 @@ router.ws(MsgStrT.send, async (ctx: AAContext) => {
     //     data: data
     // }));
 
-    return faSendRouter(ctx, null);
+    return faSend(ctx, null);
     
 });
+
+
+/**
+ * Уход сообщений
+ */
+ router.ws(MsgStrT.ask, async (ctx: AAContext) => {
+
+    // console.log(ctx.body)
+    // console.log('Это вопрос от клиента')
+
+    const data = gMqServerSys.get(ctx.body);
+    console.log('ask>>>',ctx.body, data)
+
+    // if(data){
+        return faSend(ctx, data);
+    // } else {
+    //     return faSendRouter(ctx, {msg:'нет сообщений'});
+    // }
+
+});
+
+/**
+ * Количество сообщений
+ */
+ router.ws(MsgStrT.count, async (ctx: AAContext) => {
+
+    const data = gMqServerSys.count(ctx.body.queue);
+    console.log('count>>>',ctx.body, data)
+
+    // if(data){
+        return faSend(ctx, data);
+    // } else {
+    //     return faSendRouter(ctx, {msg:'нет сообщений'});
+    // }
+
+});
+
 
 
 

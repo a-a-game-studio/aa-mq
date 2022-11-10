@@ -1,14 +1,15 @@
 
 import ip from 'ip'
+import { MsgContext } from './MqContext';
 
 /** информация по сообщению */
 export interface MsgInfoI{
-    send_time:number,
-    send_ip:string,
-    ask_time:number,
-    ask_ip:string,
-    work_time:number,
-    work_ip:string
+    send_time?:number,
+    send_ip?:string,
+    ask_time?:number,
+    ask_ip?:string,
+    work_time?:number,
+    work_ip?:string
 }
 
 /** информация по сообщению */
@@ -33,24 +34,35 @@ export class MqQueueC {
     iQueEnd = 0; // Курсор конца сообщений
 
     /** Получить значение из очереди */
-    public get(){
+    public get(msg:MsgContext){
         let iQueStart = 0;
         if(this.iQueEnd > this.iQueStart){
-            iQueStart = this.iQueStart++;
+            iQueStart = ++this.iQueStart;
         }
 
+        console.log(iQueStart,this.ixMsg[iQueStart])
+
         const data = this.ixMsg[iQueStart];
-        delete this.ixMsg[iQueStart];
+
+        this.ixInfo[iQueStart] = {
+            ask_time: Date.now(),
+            ask_ip: msg.ip
+        }
     
         return data;
     
     }
 
     /** Поместить значение в очередь */
-    public set(data:any){
-        const iQueEnd = this.iQueEnd++
+    public set(msg:MsgContext){
+        const iQueEnd = ++this.iQueEnd;
     
-        this.ixMsg[iQueEnd] = data;
+        this.ixMsg[iQueEnd] = msg.data;
+
+        this.ixInfo[iQueEnd] = {
+            send_time: Date.now(),
+            send_ip: msg.ip
+        }
     }
 
     /** Поместить значение в очередь */
@@ -70,8 +82,6 @@ export class MqQueueC {
 
         return vQueueInfo;
     }
-
-
 }
 
 /** Система очередей */
@@ -79,28 +89,29 @@ export class MqServerSys {
     public ixQueue:Record<string, MqQueueC> = {};
 
     /** Получить из очереди */
-    public get(sQue:string){
+    public get(msg:MsgContext){
         
-        if(!this.ixQueue[sQue]){
-            this.ixQueue[sQue] = new MqQueueC();
+        if(!this.ixQueue[msg.queue]){
+            this.ixQueue[msg.queue] = new MqQueueC();
         }
 
-        const vMqQueueC = this.ixQueue[sQue];
+        const vMqQueueC = this.ixQueue[msg.queue];
         
-        return vMqQueueC.get();
+        return vMqQueueC.get(msg);
     
         
     }
     
     /** Поместить значение в очередь */
-    public set(sQue:string, data:any){
-        if(!this.ixQueue[sQue]){
-            this.ixQueue[sQue] = new MqQueueC();
+    public set(msg:MsgContext){
+        if(!this.ixQueue[msg.queue]){
+            this.ixQueue[msg.queue] = new MqQueueC();
         }
 
-        const vMqQueueC = this.ixQueue[sQue];
 
-        vMqQueueC.set(data)
+        const vMqQueueC = this.ixQueue[msg.queue];
+
+        vMqQueueC.set(msg)
     }
 
     /** Получить количество сообщений в очереди */
@@ -122,8 +133,6 @@ export class MqServerSys {
         }
 
         const vMqQueueC = this.ixQueue[sQue];
-
-        
 
         return vMqQueueC.info();
     }
