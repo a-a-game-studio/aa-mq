@@ -14,6 +14,13 @@ let cntConnect = 0;
 
 const gMqServerSys = new MqServerSys();
 
+gMqServerSys.dbInit();
+
+/** Интервал записи данных в бд */
+const intervalDb = setInterval(() => {
+    gMqServerSys.dbSave()
+},1000*10)
+
 
 // =============================================================
 // var remoteSocket = new net.Socket();

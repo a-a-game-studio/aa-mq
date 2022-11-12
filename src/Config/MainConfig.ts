@@ -28,13 +28,13 @@ export enum MsgStrT {
 // n - сообщение
 
 export const dbConf = { // Knex mysql
-    client: "mysql",
+    client: "mysql2",
     connection: {
         host: "localhost",
         user: "root",
-        port:3000,
+        port:3306,
         password: "Angel13q24w35e",
-        database: "test_proxy_master"
+        database: "aa_mq"
     },
     pool: { "min": 0, "max": 7 },
     acquireConnectionTimeout: 5000

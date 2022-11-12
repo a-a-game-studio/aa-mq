@@ -39,7 +39,8 @@
     "typescript-require": "^0.2.10",
     "uniqid": "^5.2.0",
     "utf8": "^3.0.0",
-    "uuid": "^3.4.0"
+    "uuid": "^3.4.0",
+    "dayjs": "^1.10.7"
   },
   "devDependencies": {
     "@trongnd/ts-nodemon": "^1.0.3",

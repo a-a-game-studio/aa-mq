@@ -1,5 +1,5 @@
 
-import { dbProxy } from "./System/DBConnect";
+import { db } from "./System/DBConnect";
 import { v4 as uuid4 } from 'uuid';
 import { mRandomInteger } from "./Helper/NumberH";
 
