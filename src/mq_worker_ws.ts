@@ -30,7 +30,7 @@ async function run(){
     
 
 
-    for (let i = 0; i < 100000; i++) {
+    for (let i = 0; i < 1000000; i++) {
 
         mqClientSys.ask('test', (data:any) => {
             if(data){
@@ -58,6 +58,10 @@ async function run(){
         // });
         // querySys.fSend('/ask', null);
         console.log('запрос', i)
+
+        if(i % 100 == 0){
+            await mWait(100);
+        }
         // clientMQ.end();
         
         await mWait(1);

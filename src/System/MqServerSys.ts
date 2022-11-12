@@ -4,6 +4,7 @@ import { db } from './DBConnect';
 import { v4 as uuidv4 } from 'uuid';
 import { MsgContext } from './MqContext';
 import { mFormatDateTime } from '../Helper/DateTimeH';
+import _, { NumericDictionaryIterateeCustom } from 'lodash';
 
 /** информация по сообщению в БД*/
 export interface DBQueueInfoI{
@@ -20,6 +21,7 @@ export interface DBQueueInfoI{
 
 /** информация по сообщению в БД*/
 export interface DBMsgInfoI{
+    id?:number;
     uid:string;
     queue:string;
     server_ip:string;
@@ -56,6 +58,8 @@ export interface QueueInfoI{
 export class MqQueueC {
     ixMsg:Record<number, any> = {};
     ixInfo:Record<number, MsgInfoI> = {};
+    ixAskComplete:Record<number, string> = {}; // Пеметить в БД как запрошенные
+    ixWorkComplete:Record<number, string> = {}; // Пеметить в БД как отработанные
 
     ip:''; // IP адрес очереди
     iQueDel = 0; // Курсон удаленных сообщений
@@ -69,16 +73,21 @@ export class MqQueueC {
         let iQueStart = 0;
         if(this.iQueEnd > this.iQueStart){
             iQueStart = ++this.iQueStart;
+        } else {
+            return null;
         }
 
         console.log(iQueStart,this.ixMsg[iQueStart])
 
         const data = this.ixMsg[iQueStart];
-
+        
+ 
         const vMsgInfo = this.ixInfo[iQueStart]
         
-        vMsgInfo.ask_time = Date.now(),
-        vMsgInfo.ask_ip = msg.ip
+        vMsgInfo.ask_time = Date.now();
+        vMsgInfo.ask_ip = msg.ip;
+
+        this.ixAskComplete[iQueStart] = vMsgInfo.uid;
         
         return data;
     
@@ -130,7 +139,6 @@ export class MqServerSys {
         const vMqQueueC = this.ixQueue[msg.queue];
         
         return vMqQueueC.get(msg);
-    
         
     }
     
@@ -300,14 +308,75 @@ export class MqServerSys {
             const iQueStartDb = vMqQueueC.iQueStartDb;
             const iQueEnd = vMqQueueC.iQueEnd;
 
-            for (let i = vMqQueueC.iQueStartDb + 1, j = 0; i < iQueEnd && j < 1000; i++, j++) {
+            let aiMsgSave:number[] = [];
+
+
+            // Сохраняем новые
+            for (let c = iQueStartDb + 1, j = 0; c <= iQueEnd && j < 1000; c++, j++) {
+                aiMsgSave.push(c);
+                vMqQueueC.iQueStartDb++;
+            }
+
+            
+            // Сохраняем которые запросили
+            const aiAllAskComplete = Object.keys(vMqQueueC.ixAskComplete)
+            const ixMsgID:Record<number, number> = {}
+            if(aiAllAskComplete.length){
+                // const ixAskComplete = vMqQueueC.ixAskComplete;
+                // vMqQueueC.ixAskComplete = {};
+
+                const aiComplete = aiAllAskComplete.slice(0,1000);
+
+                // console.log('aiComplete:',aiComplete);
+                const auidComplete:string[] = [];
+                for (let j = 0; j < aiComplete.length; j++) {
+                    const iComplete = Number(aiComplete[j]);
+
+                    auidComplete.push(vMqQueueC.ixAskComplete[iComplete]);
+                }
+
+                // console.log('auidComplete:',auidComplete);
+
+                // const auidComplete = Object.values(ixAskComplete);
+
+                const aMsgDb = await db('msg').whereIn('uid', auidComplete).select('id', 'uid');
+
+                const ixMsgDb = _.keyBy(aMsgDb, 'uid');
+
+                
+                for (let j = 0; j < aiComplete.length; j++) {
+                    const iComplete = Number(aiComplete[j]);
+                    const uidComplete = vMqQueueC.ixAskComplete[iComplete];
+
+                    aiMsgSave.push(iComplete);
+                    delete vMqQueueC.ixAskComplete[iComplete];
+
+                    const vMsgDb = ixMsgDb[uidComplete];
+
+                    if(vMsgDb){
+                        ixMsgID[iComplete] = vMsgDb.id;
+                    }
+                }
+            }
+
+            // console.log('aiMsgSave:',aiMsgSave);
+            aiMsgSave = _.uniq(aiMsgSave);
+            // console.log('aiMsgSave:',aiMsgSave);
+
+            for (let j = 0; j < aiMsgSave.length; j++) {
+                const iMsg = aiMsgSave[j];
 
                 const vMsgDb:DBMsgInfoI = <any>{};
-                const vMsg = vMqQueueC.ixMsg[i];
-                const vMsgInfo = vMqQueueC.ixInfo[i];
+                const vMsg = vMqQueueC.ixMsg[iMsg];
+                const vMsgInfo = vMqQueueC.ixInfo[iMsg];
 
                 if(vMsg && vMsgInfo){
                 
+                    if(ixMsgID[iMsg]){
+                        vMsgDb.id = Number(ixMsgID[iMsg]);
+                    }
+
+
                     vMsgDb.uid = vMsgInfo.uid;
                     vMsgDb.queue = kQueue;
                     vMsgDb.server_ip = ip.address();
@@ -319,23 +388,34 @@ export class MqServerSys {
                     vMsgDb.work_time = vMsgInfo.work_time ? mFormatDateTime(vMsgInfo.work_time): null;
                     vMsgDb.work_ip = vMsgInfo.work_ip
                     aMqLog.push(vMsgDb);
-                    vMqQueueC.iQueStartDb++;
+                    
                 } else {
-                    console.log('ERROR>>>',vMsg, vMsgInfo);
+                    console.log('ERROR>>>',aiMsgSave.length, vMsg, vMsgInfo);
                 }
 
             }
 
             if(aMqLog.length){
-                await db('msg').insert(aMqLog)
+                try {
+                    let sql = (db('msg')
+                        .insert(aMqLog)
+                    ).toString();
+                    sql = sql.replace(/^insert/i, 'replace');
+
+                    // console.log('sql>>>',sql);
+                    await db.raw(sql);
+            
+                } catch (e) {
+                    console.log('>>>ERROR>>>', e);
+                }
 
                 console.log('Сохранение данных: [', kQueue, ']', aMqLog.length);
             } else {
                 process.stdout.write('.');
             }
-        }
 
-        
+            
+        }
         
     }
 }
