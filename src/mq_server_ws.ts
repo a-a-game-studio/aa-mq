@@ -46,15 +46,22 @@ const router = new AARoute();
  */
  router.ws(MsgStrT.send, async (ctx: AAContext) => {
 
-    console.log('send>>', ctx.body)
-    console.log('IP',ctx.body.ip);
+    // console.log('send>>', ctx.body)
+    // console.log('IP',ctx.body.ip);
 
     // if(giQueEnd % 1000 == 0){
     //     console.log('send>>',giQueEnd - giQueStart)
     // }
     // console.log('Это вопрос от клиента')
+    if(ctx.body.length){
+        for (let i = 0; i < ctx.body.length; i++) {
+            const msg = ctx.body[i];
+            gMqServerSys.set(msg);    
+        }
+    } else {
+        gMqServerSys.set(ctx.body);
+    }
     
-    gMqServerSys.set(ctx.body);
     // console.log('que>>',ixQueue);
 
     // ctx.ws.send(JSON.stringify({
@@ -80,6 +87,7 @@ const router = new AARoute();
     console.log('ask>>>',ctx.body, data)
 
     // if(data){
+
         return faSend(ctx, data);
     // } else {
     //     return faSendRouter(ctx, {msg:'нет сообщений'});

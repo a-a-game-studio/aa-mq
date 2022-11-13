@@ -29,12 +29,14 @@ async function run(){
     
 
 
-    for (let i = 0; i < 20000; i++) {
+    for (let i = 0; i < 10000; i++) {
         const sMsg = '['+i+'] СообщениЕ ['+i+']';
 
-        mqClientSys.send('test', {text:sMsg});
+        mqClientSys.sendBuffer('test', {text:sMsg});
 
-        process.stdout.write('.');
+        if(i % 1000 == 0){
+            process.stdout.write('.');
+        }
 
         // if(i%1000 == 0){
         //     await mWait(1000);

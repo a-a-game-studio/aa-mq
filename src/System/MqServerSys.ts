@@ -148,6 +148,7 @@ export class MqServerSys {
             this.ixQueue[msg.queue] = new MqQueueC();
         }
 
+        process.stdout.write('.')
 
         const vMqQueueC = this.ixQueue[msg.queue];
 
