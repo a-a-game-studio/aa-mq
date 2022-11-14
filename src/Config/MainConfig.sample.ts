@@ -12,6 +12,7 @@ export const dbConf = { // Knex mysql
     acquireConnectionTimeout: 5000
 };
 
+
 /** Общие настройки приложения */
 export const common = {
     env: 'dev', // Тип окружения
