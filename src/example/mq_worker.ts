@@ -1,56 +1,43 @@
 
-import { db } from "./System/DBConnect";
+import { db } from "../System/DBConnect";
 import { v4 as uuid4 } from 'uuid';
-import { mRandomInteger } from "./Helper/NumberH";
+import { mRandomInteger } from "../Helper/NumberH";
 
 
 
-import { mWait } from "./Helper/WaitH";
-import { coreApi, MsgStrT, MsgT } from "./Config/MainConfig";
+import { mWait } from "../Helper/WaitH";
 import { QuerySys } from "@a-a-game-studio/aa-front";
-import { MqClientSys } from "./System/MqClientSys";
+import { MqClientSys } from "../System/MqClientSys";
 
 var SERVER_PORT = 8080;
 var ADDR = "127.0.0.1";
 let iConnect = 0;
 
+// CORE API
+export const coreApi = {
+    baseURL: 'ws://127.0.0.1:8080',
+    timeout: 30000,
+    withCredentials: true,
+};
+
 
 async function run(){
-
-    const mqClientSys = new MqClientSys(<any>coreApi)
 
     // const querySys = new QuerySys()
     // querySys.fConfigWs(coreApi);
 
+    const mqClientSys = new MqClientSys(<any>coreApi)
 
     /** Инициализация страницы */
-    
 
-    
+    for (let i = 0; i < 1000000; i++) {
 
-
-    for (let i = 0; i < 10000; i++) {
-        const sMsg = '['+i+'] СообщениЕ ['+i+']';
-
-        mqClientSys.sendBuffer('test', {text:sMsg});
-
-        if(i % 1000 == 0){
-            process.stdout.write('.');
-        }
-
-        // if(i%1000 == 0){
-        //     await mWait(1000);
-        // }
-        
-
-    
-        // const ab = Buffer.from([
-        //     MsgT.send,
-        //     'statement'.length,
-        //     ...Buffer.from('statement'),
-        //     ...Buffer.alloc(4, sMsg.length),
-        //     ...Buffer.from(sMsg)
-        // ])
+        mqClientSys.ask('test', (data:any) => {
+            if(data){
+                console.log('[>>>Ответ<<<]');
+                console.log(data);
+            }
+        })
 
         // console.log('тип', MsgT.send);
         // console.log('длинна', 'statement'.length);
@@ -61,20 +48,25 @@ async function run(){
 
         // querySys.fInit();
         // querySys.fActionOk((data: any) => {
-        //     process.stdout.write('.');
-        //     // console.log('[>>>Ответ<<<]');
-        //     // console.log(data);
+        //     if(data){
+        //         console.log('[>>>Ответ<<<]');
+        //         console.log(data);
+        //     }
         // });
         // querySys.fActionErr((err:any) => {
         //     console.error(err);
         // });
-        // querySys.fSend('/send', {msg:sMsg});
+        // querySys.fSend('/ask', null);
+        console.log('запрос', i)
 
+        if(i % 100 == 0){
+            await mWait(100);
+        }
+        // clientMQ.end();
         
-        
+        await mWait(1);
     }
     
-    await mqClientSys.waitSend();
 
     // clientMQ.on('data', function (msg) {
 
@@ -99,11 +91,8 @@ async function run(){
     console.log('=========================');
     process.exit(0)
 }
-// for (let i = 0; i < 20; i++) {
+
 run().catch((error) => {
     console.log('>>>ERROR>>>',error);
     process.exit(1)
 });
-
-// }
-

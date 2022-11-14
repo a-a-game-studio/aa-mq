@@ -2,8 +2,8 @@ import { QuerySys } from "@a-a-game-studio/aa-front";
 import e from "express";
 
 import ip from 'ip'
-import { MsgStrT } from "../Config/MainConfig";
 import { mWait } from "../Helper/WaitH";
+import { MsgT } from "../interface/CommonI";
 
 
 export class MqClientSys {
@@ -44,7 +44,7 @@ export class MqClientSys {
             this.iSendErr++;
             console.error(err);
         });
-        this.querySys.fSend(MsgStrT.send, {
+        this.querySys.fSend(MsgT.send, {
             ip:ip.address(),
             queue:sQueue,
             data:msg
@@ -100,7 +100,7 @@ export class MqClientSys {
                 this.iSendErr++;
                 console.error(err);
             });
-            this.querySys.fSend(MsgStrT.send, aMsg);
+            this.querySys.fSend(MsgT.send, aMsg);
 
             console.log(aMsg);
 
@@ -142,7 +142,7 @@ export class MqClientSys {
         this.querySys.fActionErr((err:any) => {
             console.error(err);
         });
-        this.querySys.fSend(MsgStrT.ask, {
+        this.querySys.fSend(MsgT.ask, {
             ip:ip.address(),
             queue:sQueue
         });
@@ -157,7 +157,7 @@ export class MqClientSys {
         this.querySys.fActionErr((err:any) => {
             console.error(err);
         });
-        this.querySys.fSend(MsgStrT.count, {
+        this.querySys.fSend(MsgT.count, {
             ip:ip.address(),
             queue:sQueue
         });
@@ -172,7 +172,7 @@ export class MqClientSys {
         this.querySys.fActionErr((err:any) => {
             console.error(err);
         });
-        this.querySys.fSend(MsgStrT.info, {
+        this.querySys.fSend(MsgT.info, {
             ip:ip.address(),
             queue:sQueue
         });

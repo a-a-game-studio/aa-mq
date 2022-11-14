@@ -2,9 +2,11 @@
 import ip from 'ip'
 import { db } from './DBConnect';
 import { v4 as uuidv4 } from 'uuid';
-import { MsgContext } from './MqContext';
 import { mFormatDateTime } from '../Helper/DateTimeH';
 import _, { NumericDictionaryIterateeCustom } from 'lodash';
+import { MsgContext } from '../interface/CommonI';
+
+
 
 /** информация по сообщению в БД*/
 export interface DBQueueInfoI{

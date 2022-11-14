@@ -1,11 +1,22 @@
-export const mysql = { // Knex mysql
-    client: "mysql",
+
+export const dbConf = { // Knex mysql
+    client: "mysql2",
     connection: {
         host: "localhost",
         user: "root",
-        password: "*",
-        database: "*"
+        port:3306,
+        password: "****",
+        database: "aa_mq"
     },
     pool: { "min": 0, "max": 7 },
-    acquireConnectionTimeout: 60000
+    acquireConnectionTimeout: 5000
 };
+
+/** Общие настройки приложения */
+export const common = {
+    env: 'dev', // Тип окружения
+    nameApp: 'mq', // Имя приложения // показываем
+    host: '0.0.0.0', // Внутренний host на котором стартует noda слушается обращение к API
+    port: 3005, // порт на котором будет работать нода
+    host_public: 'https://dev.63pokupki.ru', // Публичный host балансер к которому идет обращение с фронта
+}

@@ -1,14 +1,12 @@
 
 import { AAContext, AARoute, AAServer } from '@a-a-game-studio/aa-server';
-import { MsgStrT, MsgT } from './Config/MainConfig';
-import ParseBodyMiddleware from './Middleware/ParseBodyMiddleware';
+
+
 import { MqServerSys } from './System/MqServerSys';
 import { faSendRouter as faSend } from './System/ResponseSys';
 
-import ip from 'ip'
-
-var SERVER_PORT = 8080;
-var SERVER_HOST = "127.0.0.1";
+import { MsgT } from './interface/CommonI';
+import { common } from './Config/MainConfig';
 
 let cntConnect = 0;
 
@@ -44,7 +42,7 @@ const router = new AARoute();
 /**
  * Приход сообщений
  */
- router.ws(MsgStrT.send, async (ctx: AAContext) => {
+ router.ws(MsgT.send, async (ctx: AAContext) => {
 
     // console.log('send>>', ctx.body)
     // console.log('IP',ctx.body.ip);
@@ -78,7 +76,7 @@ const router = new AARoute();
 /**
  * Уход сообщений
  */
- router.ws(MsgStrT.ask, async (ctx: AAContext) => {
+ router.ws(MsgT.ask, async (ctx: AAContext) => {
 
     // console.log(ctx.body)
     // console.log('Это вопрос от клиента')
@@ -98,7 +96,7 @@ const router = new AARoute();
 /**
  * Количество сообщений
  */
- router.ws(MsgStrT.count, async (ctx: AAContext) => {
+ router.ws(MsgT.count, async (ctx: AAContext) => {
 
     const data = gMqServerSys.count(ctx.body.queue);
     console.log('count>>>',ctx.body, data)
@@ -133,8 +131,8 @@ console.log(`
 
 `);
 
-app.listenWs(8080, '127.0.0.1', () => {
-    console.log(`server start at ${SERVER_HOST}:${SERVER_PORT}`);
+app.listenWs(common.port, common.host, () => {
+    console.log(`server start at ${common.host}:${common.port}`);
 
     return true;
 });
