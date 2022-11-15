@@ -1,5 +1,5 @@
 {
-  "name": "@a-a-game-studio/aa-mq.core",
+  "name": "@a-a-game-studio/aa-mq",
   "version": "0.0.2",
   "description": "Менеджер очередей",
   "main": "build/index.js",
