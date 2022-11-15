@@ -38,7 +38,7 @@ async function run(){
     for (let i = 0; i < 10000; i++) {
         const sMsg = '['+i+'] СообщениЕ ['+i+']';
 
-        mqClientSys.sendBuffer('test', {text:sMsg});
+        mqClientSys.send('test', {text:sMsg});
 
         if(i % 1000 == 0){
             process.stdout.write('.');

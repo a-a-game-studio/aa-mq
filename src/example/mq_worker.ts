@@ -30,14 +30,11 @@ async function run(){
 
     /** Инициализация страницы */
 
-    for (let i = 0; i < 1000000; i++) {
-
-        mqClientSys.ask('test', (data:any) => {
-            if(data){
-                console.log('[>>>Ответ<<<]');
-                console.log(data);
-            }
-        })
+    let count = 0;
+    await mqClientSys.watchWork('test', 10, async (data:any) => {
+        console.log('чтение очереди:',count++,  data);
+        await mWait(1000);
+    })
 
         // console.log('тип', MsgT.send);
         // console.log('длинна', 'statement'.length);
@@ -57,15 +54,10 @@ async function run(){
         //     console.error(err);
         // });
         // querySys.fSend('/ask', null);
-        console.log('запрос', i)
 
-        if(i % 100 == 0){
-            await mWait(100);
-        }
         // clientMQ.end();
         
-        await mWait(1);
-    }
+    
     
 
     // clientMQ.on('data', function (msg) {

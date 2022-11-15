@@ -1,7 +1,9 @@
 import { QuerySys } from "@a-a-game-studio/aa-front";
+import { resolve } from "dns";
 import e from "express";
 
 import ip from 'ip'
+import { reject } from "lodash";
 import { mWait } from "../Helper/WaitH";
 import { MsgT } from "../interface/CommonI";
 
@@ -13,9 +15,19 @@ export class MqClientSys {
     iSendComplete:number = 0;
     iSendErr:number = 0;
 
+    // Работа с буфером
     iLastTimeSend = Date.now();
     ixSendBuffer:Record<string, any[]> = {};
     iSendBufferCount = 0;
+
+    // Установка количество рабочик в воркере
+    // iWorkerMax = 0;
+    // iWorker = 0;
+    ixWorker:Record<string, {
+        max?:number;
+        count?:number;
+        interval?:any;
+    }> = {}
 
     constructor(conf:{
         baseURL: 'ws://127.0.0.1:8080',
@@ -109,6 +121,53 @@ export class MqClientSys {
         
 	}
 
+    /**
+	 * Отслеживать очередь
+	 * @param sQueue
+	 * @param msg
+	 */
+	public async watchWork(sQueue:string, iWorkerMax:number, cb:Function): Promise<void> {
+        
+        // Бесконечное ожидание
+        let bRun = true;
+        if(!this.ixWorker[sQueue]){
+            this.ixWorker[sQueue]
+            this.ixWorker[sQueue] = {};
+
+            const vWorker = this.ixWorker[sQueue];
+
+            vWorker.count = 0;
+            vWorker.max = iWorkerMax;
+            vWorker.interval = setInterval(async () => {
+             
+                if(vWorker.count < vWorker.max){
+
+                    try{
+                        this.ask(sQueue, async(data:any) => {
+                            if(data){
+                                vWorker.count++;
+                                await cb(data);
+                                vWorker.count--;
+                                
+                            }
+                        });
+                        
+                    } catch(e){
+                        console.log('ERROR>>>',e)
+                        clearInterval(vWorker.interval);
+                        bRun = false;
+                    }
+                }
+                await mWait(1);
+            }, 1);
+
+            while(bRun){
+                await mWait(1000*60);
+            }
+        }
+        
+    }
+
 
     /**
 	 * Отправить сообщение в очередь
@@ -136,7 +195,22 @@ export class MqClientSys {
     /** Запросить из очереди 
      * cb(data)
     */
-    public ask(sQueue:string, cb:Function): void {
+    public ask(sQueue:string, cb:Function) {
+        this.querySys.fInit();
+        this.querySys.fActionOk(cb);
+        this.querySys.fActionErr((err:any) => {
+            reject(err)
+        });
+        this.querySys.fSend(MsgT.ask, {
+            ip:ip.address(),
+            queue:sQueue
+        });
+    }
+
+    /** Запросить из очереди 
+     * cb(data)
+    */
+    public work(sQueue:string, cb:Function): void {
         this.querySys.fInit();
         this.querySys.fActionOk(cb);
         this.querySys.fActionErr((err:any) => {
