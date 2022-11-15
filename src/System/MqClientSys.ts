@@ -30,7 +30,7 @@ export class MqClientSys {
     }> = {}
 
     constructor(conf:{
-        baseURL: 'ws://127.0.0.1:8080',
+        baseURL: string, // 'ws://127.0.0.1:8080',
     }){
         this.querySys = new QuerySys()
         this.querySys.fConfigWs(conf);
