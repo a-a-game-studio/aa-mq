@@ -312,6 +312,7 @@ export class MqServerSys {
             const iQueEnd = vMqQueueC.iQueEnd;
 
             let aiMsgSave:number[] = [];
+            let aiMsgDel:number[] = [];
 
 
             // Сохраняем новые
@@ -379,6 +380,10 @@ export class MqServerSys {
                         vMsgDb.id = Number(ixMsgID[iMsg]);
                     }
 
+                    // TODO тут должен быть vMsgInfo.work_time
+                    if(vMsgInfo.ask_time){
+                        aiMsgDel.push(iMsg);
+                    }
 
                     vMsgDb.uid = vMsgInfo.uid;
                     vMsgDb.queue = kQueue;
@@ -415,6 +420,15 @@ export class MqServerSys {
                 console.log('Сохранение данных: [', kQueue, ']', aMqLog.length);
             } else {
                 process.stdout.write('.');
+            }
+
+            // Освобождение памяти от сообщений
+            if(aiMsgDel.length){
+                for (let j = 0; j < aiMsgDel.length; j++) {
+                    const iMsgDel = aiMsgDel[j];
+                    delete vMqQueueC.ixMsg[iMsgDel];
+                    delete vMqQueueC.ixInfo[iMsgDel];
+                }
             }
 
             
