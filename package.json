@@ -1,11 +1,11 @@
 {
-  "name": "@a-a-game-studio/aa-proxy-db.core",
-  "version": "0.0.2",
-  "description": "Онлайн база данных для игры История Лары",
+  "name": "@a-a-game-studio/aa-mq.core",
+  "version": "0.0.1",
+  "description": "Менеджер очередей",
   "main": "build/index.js",
   "types": "build/index.d.ts",
   "keywords": [
-    "core"
+    "mq"
   ],
   "author": "a-a-game-studio",
   "license": "BSD-3-Clause",
