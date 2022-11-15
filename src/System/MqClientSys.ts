@@ -130,6 +130,7 @@ export class MqClientSys {
         
         // Бесконечное ожидание
         let bRun = true;
+        let iWait = 0;
         if(!this.ixWorker[sQueue]){
             this.ixWorker[sQueue]
             this.ixWorker[sQueue] = {};
@@ -140,7 +141,7 @@ export class MqClientSys {
             vWorker.max = iWorkerMax;
             vWorker.interval = setInterval(async () => {
              
-                if(vWorker.count < vWorker.max){
+                if(vWorker.count < vWorker.max && iWait <= 0){
 
                     try{
                         this.ask(sQueue, async(data:any) => {
@@ -148,8 +149,10 @@ export class MqClientSys {
                                 vWorker.count++;
                                 await cb(data);
                                 vWorker.count--;
-                                
+                            } else {
+                                iWait = 1000;
                             }
+                            
                         });
                         
                     } catch(e){
@@ -158,7 +161,12 @@ export class MqClientSys {
                         bRun = false;
                     }
                 }
-                await mWait(1);
+
+                if(iWait >= 0){
+                    iWait--;
+                }
+                
+                
             }, 1);
 
             while(bRun){
