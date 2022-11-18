@@ -88,6 +88,17 @@ export class MqClientSys {
             }
         }
 
+        this.endBuffer()
+        
+	}
+
+    /**
+	 * Отправить накопленный буфер
+	 * @param sQueue
+	 * @param msg
+	 */
+	public endBuffer(): void {
+
         const ixSendBuffer = this.ixSendBuffer;
         this.ixSendBuffer = {}
         this.iSendBufferCount = 0;
@@ -118,8 +129,7 @@ export class MqClientSys {
 
             this.iSend++;
         }
-        
-	}
+    }
 
     /**
 	 * Отслеживать очередь
@@ -184,6 +194,8 @@ export class MqClientSys {
 	 */
 	public async waitSend() {
         let iCompleteBefore = 0;
+
+        this.endBuffer(); // Отправить остатки буфера
 
         let iAnswer = 0;
         while(iAnswer < this.iSend){
