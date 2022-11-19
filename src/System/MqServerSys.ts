@@ -76,12 +76,31 @@ export class MqQueueC {
     ixAskComplete:Record<number, string> = {}; // Пеметить в БД как запрошенные
     ixWorkComplete:Record<number, string> = {}; // Пеметить в БД как отработанные
 
+    // Учет скорости
+    ixSpeedSend:Record<number, number> = {};
+    ixSpeedAsk:Record<number, number> = {};
+    ixSpeedWork:Record<number, number> = {};
+
+    // Курсор очереди
     ip:''; // IP адрес очереди
     iQueDel = 0; // Курсон удаленных сообщений
-    iQueSpeed = 0; // Курсор сообщений для расчета статистики за последнюю минуту
     iQueStartDb = 0; // Курсор сообщений перенесенных в БД
-    iQueStart = 0; // Курсор необработанных сообщений
-    iQueEnd = 0; // Курсор конца сообщений
+    iQueStart = 0; // Курсор необработанных сообщений(cntAsk)
+    iQueEnd = 0; // Курсор конца сообщений(cntSend)
+
+    cntWork = 0; // Счетчик окончания работы
+    
+
+    /** init */
+    constructor(){
+        for (let i = 0; i < 100; i++) {
+            this.ixSpeedSend[i] = 0;
+            this.ixSpeedAsk[i] = 0;
+            this.ixSpeedWork[i] = 0;
+        }
+    }
+
+    
 
     /** Получить значение из очереди */
     public get(msg:MsgContext){
@@ -98,11 +117,16 @@ export class MqQueueC {
         
  
         const vMsgInfo = this.ixInfo[iQueStart]
+
+        const iAskTime = Date.now();
         
-        vMsgInfo.ask_time = Date.now();
+        vMsgInfo.ask_time = iAskTime;
+        vMsgInfo.ask_app = msg.app;
         vMsgInfo.ask_ip = msg.ip;
 
         this.ixAskComplete[iQueStart] = vMsgInfo.uid;
+
+        this.ixSpeedAsk[(iAskTime/1000) % 100]++; 
         
         return data;
     
@@ -114,11 +138,16 @@ export class MqQueueC {
     
         this.ixMsg[iQueEnd] = msg.data;
 
+        const iSendTime = Date.now();
+
         this.ixInfo[iQueEnd] = {
             uid:uuidv4(),
             send_time: Date.now(),
+            send_app: msg.app,
             send_ip: msg.ip
         }
+
+        this.ixSpeedSend[(iSendTime/1000) % 100]++;
     }
 
     /** Поместить значение в очередь */
@@ -332,7 +361,6 @@ export class MqServerSys {
         for (let i = 0; i < akQueue.length; i++) {
             const kQueue = akQueue[i];
             const vMqQueueC = this.ixQueue[kQueue]
-
             
             const iQueStartDb = vMqQueueC.iQueStartDb;
             const iQueEnd = vMqQueueC.iQueEnd;
@@ -443,6 +471,56 @@ export class MqServerSys {
                     delete vMqQueueC.ixMsg[iMsgDel];
                     delete vMqQueueC.ixInfo[iMsgDel];
                 }
+            }
+
+            // Запись информации по очереди
+            const iSpeedSend = _.sum(Object.values(vMqQueueC.ixSpeedAsk))/100;
+            const iSpeedAsk = _.sum(Object.values(vMqQueueC.ixSpeedAsk))/100;
+            const iSpeedWork = _.sum(Object.values(vMqQueueC.ixSpeedAsk))/100;
+            const cntSend = vMqQueueC.iQueStart;
+            const cntAsk = vMqQueueC.iQueEnd;
+            const cntWork = vMqQueueC.cntWork;
+            const contNoWork = cntSend - cntWork;
+
+            try {
+                const ifExist = (await db('queue')
+                    .where({queue:kQueue,ip:ip.address()})
+                    .first('id'))?.id;
+
+                if(ifExist){
+                    await db('queue')
+                        .where({queue:kQueue,ip:ip.address()})
+                        .update({
+                            count_no_work:contNoWork,
+
+                            count_send:cntSend,
+                            count_ask:cntAsk,
+                            count_work:cntWork,
+
+                            speed_send:iSpeedSend,
+                            speed_ask:iSpeedAsk,
+                            speed_work:iSpeedWork,
+                        })
+                } else {
+                    await db('queue').insert({
+                        queue:kQueue,
+                        ip:ip.address(),
+                        count_no_work:contNoWork,
+
+                        count_send:cntSend,
+                        count_ask:cntAsk,
+                        count_work:cntWork,
+
+                        speed_send:iSpeedSend,
+                        speed_ask:iSpeedAsk,
+                        speed_work:iSpeedWork
+                    })
+                    .onConflict(['queue','ip'])
+                    .merge();
+                }
+
+            } catch (e) {
+                console.log('>>>ERROR>>>', e);
             }
             
         } // for que
