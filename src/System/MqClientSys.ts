@@ -10,6 +10,11 @@ import { MsgT } from "../interface/CommonI";
 
 export class MqClientSys {
 
+    conf:{
+        baseURL: string, // 'ws://127.0.0.1:8080',
+        nameApp: string, // Наименование приложения
+    } = null;
+
     private querySys:QuerySys = null;
     iSend:number = 0;
     iSendComplete:number = 0;
@@ -29,11 +34,15 @@ export class MqClientSys {
         interval?:any;
     }> = {}
 
+
+
     constructor(conf:{
         baseURL: string, // 'ws://127.0.0.1:8080',
+        nameApp: string, // Наименование приложения
     }){
         this.querySys = new QuerySys()
         this.querySys.fConfigWs(conf);
+        this.conf = conf;
     }
 
     /**
@@ -57,6 +66,7 @@ export class MqClientSys {
             console.error(err);
         });
         this.querySys.fSend(MsgT.send, {
+            app:this.conf.nameApp,
             ip:ip.address(),
             queue:sQueue,
             data:msg
@@ -77,6 +87,7 @@ export class MqClientSys {
             }
 
             this.ixSendBuffer[sQueue].push({
+                app:this.conf.nameApp,
                 ip:ip.address(),
                 queue:sQueue,
                 data:msg
@@ -189,8 +200,6 @@ export class MqClientSys {
 
     /**
 	 * Отправить сообщение в очередь
-	 * @param sQueue
-	 * @param msg
 	 */
 	public async waitSend() {
         let iCompleteBefore = 0;
@@ -222,6 +231,7 @@ export class MqClientSys {
             reject(err)
         });
         this.querySys.fSend(MsgT.ask, {
+            app:this.conf.nameApp,
             ip:ip.address(),
             queue:sQueue
         });
@@ -236,7 +246,8 @@ export class MqClientSys {
         this.querySys.fActionErr((err:any) => {
             console.error(err);
         });
-        this.querySys.fSend(MsgT.ask, {
+        this.querySys.fSend(MsgT.work, {
+            app:this.conf.nameApp,
             ip:ip.address(),
             queue:sQueue
         });
@@ -252,6 +263,7 @@ export class MqClientSys {
             console.error(err);
         });
         this.querySys.fSend(MsgT.count, {
+            app:this.conf.nameApp,
             ip:ip.address(),
             queue:sQueue
         });
@@ -267,6 +279,7 @@ export class MqClientSys {
             console.error(err);
         });
         this.querySys.fSend(MsgT.info, {
+            app:this.conf.nameApp,
             ip:ip.address(),
             queue:sQueue
         });

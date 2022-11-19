@@ -10,7 +10,9 @@ export enum MsgT {
 }
 
 export interface MsgContext {
+    n?:string; // Номер сообщения (когда оно уже зарегистрированно)
 	queue: string; // Очередь
+    app:string; // Наименование приложения
     ip:string; // Входной IP адрес
     data?:any; // Данные
 }

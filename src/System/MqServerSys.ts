@@ -5,6 +5,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { mFormatDateTime } from '../Helper/DateTimeH';
 import _, { NumericDictionaryIterateeCustom } from 'lodash';
 import { MsgContext } from '../interface/CommonI';
+import * as conf from '../Config/MainConfig'
 
 
 
@@ -26,13 +27,20 @@ export interface DBMsgInfoI{
     id?:number;
     uid:string;
     queue:string;
+    server_app:string; // имя серврера держатель сообщение
     server_ip:string;
     data:string;
+
     send_time:string;
+    send_app?:string, // имя приложения которое отправило сообщение
     send_ip:string;
+
     ask_time:string;
+    ask_app?:string, // имя приложения которое запросило сообщение
     ask_ip:string;
+
     work_time:string;
+    work_app?:number, // имя приложения которое отработало сообщение
     work_ip:string;
 }
 
@@ -40,10 +48,15 @@ export interface DBMsgInfoI{
 export interface MsgInfoI{
     uid:string; // Уникальны идентификатор
     send_time?:number,
+    send_app?:string, // имя приложения которое отправило сообщение
     send_ip?:string,
+
     ask_time?:number,
+    ask_app?:string, // имя приложения которое запросило сообщение
     ask_ip?:string,
+
     work_time?:number,
+    work_app?:number, // имя приложения которое отработало сообщение
     work_ip?:string
 }
 
@@ -198,6 +211,9 @@ export class MqServerSys {
                     .index('queue')
                     .comment('IP отправки');
 
+                table.string('server_app', 20)
+                    .comment('Наименование сервера');
+
                 table.string('server_ip', 20)
                     .comment('IP отправки');
 
@@ -207,6 +223,9 @@ export class MqServerSys {
                 table.dateTime('send_time')
                     .nullable()
                     .comment('время отправки');
+
+                table.string('send_app', 20)
+                    .comment('Наименование приложения отправки');
         
                 table.string('send_ip', 20)
                     .comment('IP отправки');
@@ -214,6 +233,9 @@ export class MqServerSys {
                 table.dateTime('ask_time')
                     .nullable()
                     .comment('время отправки');
+
+                table.string('ask_app', 20)
+                    .comment('Наименование приложения запрашивающего рабочего');
         
                 table.string('ask_ip', 20)
                     .comment('IP отправки');
@@ -221,6 +243,9 @@ export class MqServerSys {
                 table.dateTime('work_time')
                     .nullable()
                     .comment('время отправки');
+
+                table.string('work_app', 20)
+                    .comment('Наименование приложения запрашивающего рабочего');
         
                 table.string('work_ip', 20)
                     .comment('IP отправки');
@@ -301,19 +326,19 @@ export class MqServerSys {
     /** Сохранить информацию по очереди */
     public async dbSave(){
 
-        
+        const aMqLog:any[] = []; // Данные для сохранения
+
         const akQueue = Object.keys(this.ixQueue);
         for (let i = 0; i < akQueue.length; i++) {
             const kQueue = akQueue[i];
             const vMqQueueC = this.ixQueue[kQueue]
 
-            const aMqLog:any[] = [];
+            
             const iQueStartDb = vMqQueueC.iQueStartDb;
             const iQueEnd = vMqQueueC.iQueEnd;
 
-            let aiMsgSave:number[] = [];
-            let aiMsgDel:number[] = [];
-
+            let aiMsgSave:number[] = []; // Обрабатываемые сообщения
+            let aiMsgDel:number[] = []; // Удаление отработанных сообщений
 
             // Сохраняем новые
             for (let c = iQueStartDb + 1, j = 0; c <= iQueEnd && j < 1000; c++, j++) {
@@ -387,40 +412,29 @@ export class MqServerSys {
 
                     vMsgDb.uid = vMsgInfo.uid;
                     vMsgDb.queue = kQueue;
+                    vMsgDb.server_app = conf.common.nameApp;
                     vMsgDb.server_ip = ip.address();
                     vMsgDb.data = JSON.stringify(vMsg);
+
                     vMsgDb.send_time = vMsgInfo.send_time ? mFormatDateTime(vMsgInfo.send_time) : null;
-                    vMsgDb.send_ip = vMsgInfo.send_ip
+                    vMsgDb.send_app = vMsgInfo.send_app;
+                    vMsgDb.send_ip = vMsgInfo.send_ip;
+
                     vMsgDb.ask_time = vMsgInfo.ask_time ? mFormatDateTime(vMsgInfo.ask_time): null;
-                    vMsgDb.ask_ip = vMsgInfo.ask_ip
+                    vMsgDb.ask_app = vMsgInfo.ask_app;
+                    vMsgDb.ask_ip = vMsgInfo.ask_ip;
+
                     vMsgDb.work_time = vMsgInfo.work_time ? mFormatDateTime(vMsgInfo.work_time): null;
-                    vMsgDb.work_ip = vMsgInfo.work_ip
+                    vMsgDb.work_app = vMsgInfo.work_app;
+                    vMsgDb.work_ip = vMsgInfo.work_ip;
                     aMqLog.push(vMsgDb);
                     
                 } else {
                     console.log('ERROR>>>',aiMsgSave.length, vMsg, vMsgInfo);
                 }
 
-            }
+            } // for msg
 
-            if(aMqLog.length){
-                try {
-                    let sql = (db('msg')
-                        .insert(aMqLog)
-                    ).toString();
-                    sql = sql.replace(/^insert/i, 'replace');
-
-                    // console.log('sql>>>',sql);
-                    await db.raw(sql);
-            
-                } catch (e) {
-                    console.log('>>>ERROR>>>', e);
-                }
-
-                console.log('Сохранение данных: [', kQueue, ']', aMqLog.length);
-            } else {
-                process.stdout.write('.');
-            }
 
             // Освобождение памяти от сообщений
             if(aiMsgDel.length){
@@ -430,9 +444,36 @@ export class MqServerSys {
                     delete vMqQueueC.ixInfo[iMsgDel];
                 }
             }
-
             
+        } // for que
+
+        if(aMqLog.length){
+
+            const aaChunkMqLog = _.chunk(aMqLog, 1000);
+            for (let i = 0; i < aaChunkMqLog.length; i++) {
+                const aChunkMqLog = aaChunkMqLog[i];
+                
+                try {
+                    let sql = (db('msg')
+                        .insert(aChunkMqLog)
+                    ).toString();
+                    sql = sql.replace(/^insert/i, 'replace');
+    
+                    // console.log('sql>>>',sql);
+                    await db.raw(sql);
+            
+                } catch (e) {
+                    console.log('>>>ERROR>>>', e);
+                }
+
+                console.log('Сохранение данных:', aChunkMqLog.length);
+            }
+            
+        } else {
+            process.stdout.write('.');
         }
+
+        
         
     }
 }
