@@ -6,6 +6,8 @@ import { mFormatDateTime } from '../Helper/DateTimeH';
 import _, { NumericDictionaryIterateeCustom } from 'lodash';
 import { MsgContext } from '../interface/CommonI';
 import * as conf from '../Config/MainConfig'
+import { Knex } from 'knex';
+import { setInterval } from 'timers';
 
 
 
@@ -80,6 +82,7 @@ export class MqQueueC {
     ixSpeedSend:Record<number, number> = {};
     ixSpeedAsk:Record<number, number> = {};
     ixSpeedWork:Record<number, number> = {};
+    iSpeedTimeCleer:number = 0;
 
     // Курсор очереди
     ip:''; // IP адрес очереди
@@ -91,17 +94,6 @@ export class MqQueueC {
     cntWork = 0; // Счетчик окончания работы
     
 
-    /** init */
-    constructor(){
-        for (let i = 0; i < 100; i++) {
-            this.ixSpeedSend[i] = 0;
-            this.ixSpeedAsk[i] = 0;
-            this.ixSpeedWork[i] = 0;
-        }
-    }
-
-    
-
     /** Получить значение из очереди */
     public get(msg:MsgContext){
         let iQueStart = 0;
@@ -111,7 +103,7 @@ export class MqQueueC {
             return null;
         }
 
-        console.log(iQueStart,this.ixMsg[iQueStart])
+        // console.log(iQueStart,this.ixMsg[iQueStart])
 
         const data = this.ixMsg[iQueStart];
         
@@ -126,7 +118,12 @@ export class MqQueueC {
 
         this.ixAskComplete[iQueStart] = vMsgInfo.uid;
 
-        this.ixSpeedAsk[(iAskTime/1000) % 100]++; 
+        // console.log(Math.floor(iAskTime / 1000 % 100));
+        const iSpeedTimePos = Math.floor(iAskTime/1000);
+        if(!this.ixSpeedAsk[iSpeedTimePos]){
+            this.ixSpeedAsk[iSpeedTimePos] = 0;
+        }
+        this.ixSpeedAsk[iSpeedTimePos]++; 
         
         return data;
     
@@ -147,7 +144,12 @@ export class MqQueueC {
             send_ip: msg.ip
         }
 
-        this.ixSpeedSend[(iSendTime/1000) % 100]++;
+        // console.log(_.round(iSendTime/1000 % 100));
+        const iSpeedTimePos = Math.floor(iSendTime/1000);
+        if(!this.ixSpeedSend[iSpeedTimePos]){
+            this.ixSpeedSend[iSpeedTimePos] = 0;
+        }
+        this.ixSpeedSend[iSpeedTimePos]++;
     }
 
     /** Поместить значение в очередь */
@@ -227,7 +229,7 @@ export class MqServerSys {
 
         const bExistMsg = await db.schema.hasTable('msg');
         if(!bExistMsg){
-            await db.schema.createTable('msg', table => {
+            await db.schema.createTable('msg', (table:any) => {
 
                 table.bigIncrements('id')
                     .comment('ID');
@@ -296,7 +298,7 @@ export class MqServerSys {
 
         const bExistQueue = await db.schema.hasTable('queue');
         if(!bExistQueue){
-            await db.schema.createTable('queue', table => {
+            await db.schema.createTable('queue', (table:any) => {
                 table.increments('id')
                     .comment('ID');
 
@@ -473,14 +475,66 @@ export class MqServerSys {
                 }
             }
 
+            // console.log(Object.values(vMqQueueC.ixSpeedSend));
+
             // Запись информации по очереди
-            const iSpeedSend = _.sum(Object.values(vMqQueueC.ixSpeedAsk))/100;
-            const iSpeedAsk = _.sum(Object.values(vMqQueueC.ixSpeedAsk))/100;
-            const iSpeedWork = _.sum(Object.values(vMqQueueC.ixSpeedAsk))/100;
-            const cntSend = vMqQueueC.iQueStart;
-            const cntAsk = vMqQueueC.iQueEnd;
+            const iCurrTimeSec = Date.now()/1000;
+
+
+            // Подсчет в секунду отправки
+            const aSpeedSend = Object.entries(vMqQueueC.ixSpeedSend)
+            let iCntSpeedSend = 0;
+            let iTotSpeedSend = 0;
+            for (let j = 0; j < aSpeedSend.length; j++) {
+                const [kTime, vCnt] = aSpeedSend[j];
+
+                if(Number(kTime) < iCurrTimeSec - 10){
+                    delete vMqQueueC.ixSpeedSend[Number(kTime)];
+                } else {
+                    iCntSpeedSend += Number(vCnt)
+                    iTotSpeedSend++;
+                }
+            }
+
+            // Подсчет в секунду запросов
+            const aSpeedAsk = Object.entries(vMqQueueC.ixSpeedAsk)
+            console.log(aSpeedAsk);
+            let iCntSpeedAsk = 0;
+            let iTotSpeedAsk = 0;
+            for (let j = 0; j < aSpeedAsk.length; j++) {
+                const [kTime, vCnt] = aSpeedAsk[j];
+
+                if(Number(kTime) < iCurrTimeSec - 10){
+                    delete vMqQueueC.ixSpeedAsk[Number(kTime)];
+                } else {
+                    iCntSpeedAsk += Number(vCnt)
+                    iTotSpeedAsk++;
+                }
+            }
+
+            // Подсчет в секунду отработки
+            const aSpeedWork = Object.entries(vMqQueueC.ixSpeedWork)
+            let iCntSpeedWork = 0;
+            let iTotSpeedWork = 0;
+            for (let j = 0; j < aSpeedWork.length; j++) {
+                const [kTime, vCnt] = aSpeedWork[j];
+
+                if(Number(kTime) < iCurrTimeSec - 10){
+                    delete vMqQueueC.ixSpeedWork[Number(kTime)];
+                } else {
+                    iCntSpeedWork += Number(vCnt)
+                    iTotSpeedWork++;
+                }
+            }
+
+            const iSpeedSend = Math.floor(iCntSpeedSend/iTotSpeedSend) || 0;
+            const iSpeedAsk = Math.floor(iCntSpeedAsk/iTotSpeedAsk) || 0;
+            const iSpeedWork = Math.floor(iCntSpeedWork/iTotSpeedWork) || 0;
+            const cntSend = vMqQueueC.iQueEnd;
+            const cntAsk = vMqQueueC.iQueStart;
             const cntWork = vMqQueueC.cntWork;
             const contNoWork = cntSend - cntWork;
+            
 
             try {
                 const ifExist = (await db('queue')

@@ -16,7 +16,7 @@ const mqClientSys = new MqClientSys({
 
 async function run(){
 
-    for (let i = 0; i < 10000; i++) {
+    for (let i = 0; i < 100000; i++) {
         const sMsg = '['+i+'] СообщениЕ ['+i+']';
 
         mqClientSys.send('test', {text:sMsg});
