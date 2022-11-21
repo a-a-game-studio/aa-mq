@@ -1,6 +1,6 @@
 {
   "name": "@a-a-game-studio/aa-mq",
-  "version": "0.0.5",
+  "version": "0.0.6",
   "description": "Менеджер очередей",
   "main": "build/index.js",
   "types": "build/index.d.ts",
