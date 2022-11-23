@@ -2,10 +2,12 @@ import { QuerySys } from "@a-a-game-studio/aa-front";
 import { resolve } from "dns";
 import e from "express";
 
+import { v4 as uuidv4 } from 'uuid';
+
 import ip from 'ip'
 import { reject } from "lodash";
 import { mWait } from "../Helper/WaitH";
-import { MsgT } from "../interface/CommonI";
+import { MsgContextI, MsgT } from "../interface/CommonI";
 
 
 export class MqClientSys {
@@ -15,14 +17,42 @@ export class MqClientSys {
         nameApp: string, // Наименование приложения
     } = null;
 
+    ixSendMsg:Record<string, MsgContextI> = {}; // Сообщения для отправки
+    private vSendControl = setInterval(async () => {
+        const aSendMsg = Object.entries(this.ixSendMsg);
+
+        const iTime = Date.now();
+        for (let i = 0; i < aSendMsg.length; i++) {
+            const [uidMsg, vMsg] = aSendMsg[i];
+
+            // для зависших соединений если прошло 10 секунд и соединение восстановилось
+            if(vMsg.time < iTime - 10000 && this.querySys.ifWsConnect()){
+                if(!this.ixSendBuffer[vMsg.queue]){
+                    this.ixSendBuffer[vMsg.queue] = [];
+                }
+
+                // отправляем в буфер
+                this.ixSendBuffer[vMsg.queue].push(vMsg)
+
+                // Переодически отправляем сообщения
+                if(this.ixSendBuffer[vMsg.queue].length > 1000){
+                    this.endBuffer();
+                }
+            }
+        }
+
+        this.endBuffer();
+    }, 5000);
+
     private querySys:QuerySys = null;
     iSend:number = 0;
     iSendComplete:number = 0;
     iSendErr:number = 0;
+    
 
     // Работа с буфером
     iLastTimeSend = Date.now();
-    ixSendBuffer:Record<string, any[]> = {};
+    ixSendBuffer:Record<string, MsgContextI[]> = {};
     iSendBufferCount = 0;
 
     // Установка количество рабочик в воркере
@@ -35,7 +65,7 @@ export class MqClientSys {
     }> = {}
 
 
-
+    /** init */
     constructor(conf:{
         baseURL: string, // 'ws://127.0.0.1:8080',
         nameApp: string, // Наименование приложения
@@ -52,25 +82,32 @@ export class MqClientSys {
 	 */
 	public send(sQueue: string, msg: any): void {
 
+        const uidMsg = uuidv4();
+        const vMsg = {
+            uid:uidMsg,
+            app:this.conf.nameApp,
+            ip:ip.address(),
+            queue:sQueue,
+            data:msg,
+            time:Date.now()
+        }
+        this.ixSendMsg[uidMsg] = vMsg;
+
         this.querySys.fInit();
-        this.querySys.fActionOk((data: any) => {
+        this.querySys.fActionOk((data: string[]) => {
 
             this.iSendComplete++;
-            
-            // process.stdout.write('.');
-            // console.log('[>>>Ответ<<<]');
-            // console.log(data);
+
+            for (let i = 0; i < data.length; i++) {
+                const uid = data[i];
+                delete this.ixSendMsg[uid];
+            }
         });
         this.querySys.fActionErr((err:any) => {
             this.iSendErr++;
             console.error(err);
         });
-        this.querySys.fSend(MsgT.send, {
-            app:this.conf.nameApp,
-            ip:ip.address(),
-            queue:sQueue,
-            data:msg
-        });
+        this.querySys.fSend(MsgT.send, vMsg);
         this.iSend++;
 	}
 
@@ -86,12 +123,18 @@ export class MqClientSys {
                 this.ixSendBuffer[sQueue] = [];
             }
 
-            this.ixSendBuffer[sQueue].push({
+            const uidMsg = uuidv4();
+            const vMsg = {
+                uid:uidMsg,
                 app:this.conf.nameApp,
                 ip:ip.address(),
                 queue:sQueue,
-                data:msg
-            });
+                data:msg,
+                time:Date.now()
+            };
+            this.ixSendMsg[uidMsg] = vMsg;
+
+            this.ixSendBuffer[sQueue].push(vMsg);
             this.iSendBufferCount++;
 
             if(this.iSendBufferCount < 1000){
@@ -105,8 +148,6 @@ export class MqClientSys {
 
     /**
 	 * Отправить накопленный буфер
-	 * @param sQueue
-	 * @param msg
 	 */
 	public endBuffer(): void {
 
@@ -122,9 +163,14 @@ export class MqClientSys {
             const aMsg = ixSendBuffer[kSendBuffer]
 
             this.querySys.fInit();
-            this.querySys.fActionOk((data: any) => {
+            this.querySys.fActionOk((data: string[]) => {
 
                 this.iSendComplete++;
+
+                for (let i = 0; i < data.length; i++) {
+                    const uid = data[i];
+                    delete this.ixSendMsg[uid];
+                }
                 
                 // process.stdout.write('.');
                 // console.log('[>>>Ответ<<<]');

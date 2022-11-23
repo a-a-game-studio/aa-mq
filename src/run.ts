@@ -5,7 +5,7 @@ import { AAContext, AARoute, AAServer } from '@a-a-game-studio/aa-server';
 import { MqServerSys } from './System/MqServerSys';
 import { faSendRouter as faSend } from './System/ResponseSys';
 
-import { MsgT } from './interface/CommonI';
+import { MsgContextI, MsgT } from './interface/CommonI';
 import { common } from './Config/MainConfig';
 
 let cntConnect = 0;
@@ -51,24 +51,31 @@ const router = new AARoute();
     //     console.log('send>>',giQueEnd - giQueStart)
     // }
     // console.log('Это вопрос от клиента')
+
+    const auidMsg:string[] = [];
     if(ctx.body.length){
         for (let i = 0; i < ctx.body.length; i++) {
             const msg = ctx.body[i];
-            gMqServerSys.set(msg);    
+
+            auidMsg.push(msg.uid);
+
+            if(!gMqServerSys.ixMsgSend[msg.uid]){
+                gMqServerSys.ixMsgSend[msg.uid] = Date.now();
+                gMqServerSys.set(msg); 
+            }
+               
         }
     } else {
-        gMqServerSys.set(ctx.body);
+        auidMsg.push(ctx.body);
+
+        if(!gMqServerSys.ixMsgSend[ctx.body.uid]){
+            gMqServerSys.ixMsgSend[ctx.body.uid] = Date.now();
+            gMqServerSys.set(ctx.body);
+        }
     }
     
-    // console.log('que>>',ixQueue);
 
-    // ctx.ws.send(JSON.stringify({
-    //     ok: true,
-    //     e: false,
-    //     data: data
-    // }));
-
-    return faSend(ctx, null);
+    return faSend(ctx, auidMsg);
     
 });
 

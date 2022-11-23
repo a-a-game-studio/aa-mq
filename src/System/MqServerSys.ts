@@ -3,8 +3,8 @@ import ip from 'ip'
 import { db } from './DBConnect';
 import { v4 as uuidv4 } from 'uuid';
 import { mFormatDateTime } from '../Helper/DateTimeH';
-import _, { NumericDictionaryIterateeCustom } from 'lodash';
-import { MsgContext } from '../interface/CommonI';
+import _, { now, NumericDictionaryIterateeCustom } from 'lodash';
+import { MsgContextI } from '../interface/CommonI';
 import * as conf from '../Config/MainConfig'
 import { Knex } from 'knex';
 import { setInterval } from 'timers';
@@ -95,7 +95,7 @@ export class MqQueueC {
     
 
     /** Получить значение из очереди */
-    public get(msg:MsgContext){
+    public get(msg:MsgContextI){
         let iQueStart = 0;
         if(this.iQueEnd > this.iQueStart){
             iQueStart = ++this.iQueStart;
@@ -130,7 +130,7 @@ export class MqQueueC {
     }
 
     /** Поместить значение в очередь */
-    public set(msg:MsgContext){
+    public set(msg:MsgContextI){
         const iQueEnd = ++this.iQueEnd;
     
         this.ixMsg[iQueEnd] = msg.data;
@@ -138,7 +138,7 @@ export class MqQueueC {
         const iSendTime = Date.now();
 
         this.ixInfo[iQueEnd] = {
-            uid:uuidv4(),
+            uid:msg.uid,
             send_time: Date.now(),
             send_app: msg.app,
             send_ip: msg.ip
@@ -174,9 +174,10 @@ export class MqQueueC {
 /** Система очередей */
 export class MqServerSys {
     public ixQueue:Record<string, MqQueueC> = {};
+    public ixMsgSend:Record<string, number> = {}; // Проверка отправленных сообщений
 
     /** Получить из очереди */
-    public get(msg:MsgContext){
+    public get(msg:MsgContextI){
         
         if(!this.ixQueue[msg.queue]){
             this.ixQueue[msg.queue] = new MqQueueC();
@@ -189,7 +190,7 @@ export class MqServerSys {
     }
     
     /** Поместить значение в очередь */
-    public set(msg:MsgContext){
+    public set(msg:MsgContextI){
         if(!this.ixQueue[msg.queue]){
             this.ixQueue[msg.queue] = new MqQueueC();
         }
@@ -242,7 +243,7 @@ export class MqServerSys {
                     .index('queue')
                     .comment('IP отправки');
 
-                table.string('server_app', 20)
+                table.string('server_app', 50)
                     .comment('Наименование сервера');
 
                 table.string('server_ip', 20)
@@ -255,7 +256,7 @@ export class MqServerSys {
                     .nullable()
                     .comment('время отправки');
 
-                table.string('send_app', 20)
+                table.string('send_app', 50)
                     .comment('Наименование приложения отправки');
         
                 table.string('send_ip', 20)
@@ -265,7 +266,7 @@ export class MqServerSys {
                     .nullable()
                     .comment('время отправки');
 
-                table.string('ask_app', 20)
+                table.string('ask_app', 50)
                     .comment('Наименование приложения запрашивающего рабочего');
         
                 table.string('ask_ip', 20)
@@ -275,7 +276,7 @@ export class MqServerSys {
                     .nullable()
                     .comment('время отправки');
 
-                table.string('work_app', 20)
+                table.string('work_app', 50)
                     .comment('Наименование приложения запрашивающего рабочего');
         
                 table.string('work_ip', 20)
@@ -579,6 +580,7 @@ export class MqServerSys {
             
         } // for que
 
+        // Запись логов в БД
         if(aMqLog.length){
 
             const aaChunkMqLog = _.chunk(aMqLog, 1000);
@@ -605,7 +607,17 @@ export class MqServerSys {
             process.stdout.write('.');
         }
 
-        
+        // Удаление учета отправленных сообщений
+        const aMsgSend = Object.entries(this.ixMsgSend);
+        const iTimeNow =  Date.now();
+        for (let i = 0; i < aMsgSend.length; i++) {
+            const [uidMsg, iTimeSend] = aMsgSend[i];
+            
+            // Удаляем спустя 10 минут
+            if(iTimeSend < iTimeNow - 10*60*1000){
+                delete this.ixMsgSend[uidMsg];
+            }
+        }
         
     }
 }
