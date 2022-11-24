@@ -66,7 +66,7 @@ const router = new AARoute();
                
         }
     } else {
-        auidMsg.push(ctx.body);
+        auidMsg.push(ctx.body.uid);
 
         if(!gMqServerSys.ixMsgSend[ctx.body.uid]){
             gMqServerSys.ixMsgSend[ctx.body.uid] = Date.now();
