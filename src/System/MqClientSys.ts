@@ -182,7 +182,7 @@ export class MqClientSys {
             });
             this.querySys.fSend(MsgT.send, aMsg);
 
-            console.log(aMsg);
+            // console.log(aMsg);
 
             this.iSend++;
         }
