@@ -352,6 +352,34 @@ export class MqServerSys {
                 table.unique(['queue', 'ip'])
             });
         }
+
+        // заполнение очереди из логов
+        const aMsg = await db('msg')
+            .whereNull('ask_time')
+            .select()
+
+        for (let i = 0; i < aMsg.length; i++) {
+            const vMsg:DBMsgInfoI = aMsg[i];
+
+            this.ixMsgSend[vMsg.uid] = Date.now();
+            this.set({
+                uid:vMsg.uid,
+                queue:vMsg.queue,
+                data:JSON.parse(vMsg.data),
+                app:vMsg.send_app,
+                ip:vMsg.send_ip
+            });
+            
+        }
+
+        // Смещение записи логов на вставленные из логов данные
+        const akQue = Object.keys(this.ixQueue);
+        for (let i = 0; i < akQue.length; i++) {
+            const kQue = akQue[i];
+            this.ixQueue[kQue].iQueStartDb = this.ixQueue[kQue].iQueEnd;
+        }
+        
+        
     }
 
 
