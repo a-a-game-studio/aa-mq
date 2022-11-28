@@ -77,7 +77,7 @@ export class MqClientSys {
     }
 
     /** установка/переопределение опций для очереди */
-    option(option:{
+    public option(option:{
         nameApp: string, // Наименование приложения
     }){
         this.conf.nameApp = option.nameApp;
