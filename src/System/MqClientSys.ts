@@ -64,6 +64,7 @@ export class MqClientSys {
         interval?:any;
     }> = {}
 
+    
 
     /** init */
     constructor(conf:{
@@ -74,6 +75,14 @@ export class MqClientSys {
         this.querySys.fConfigWs(conf);
         this.conf = conf;
     }
+
+    /** установка/переопределение опций для очереди */
+    option(option:{
+        nameApp: string, // Наименование приложения
+    }){
+        this.conf.nameApp = option.nameApp;
+    }
+
 
     /**
 	 * Отправить сообщение в очередь
