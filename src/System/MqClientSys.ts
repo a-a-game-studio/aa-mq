@@ -217,7 +217,7 @@ export class MqClientSys {
             vWorker.max = iWorkerMax;
             vWorker.interval = setInterval(async () => {
              
-                if(vWorker.count < vWorker.max && iWait <= 0){
+                if(vWorker.count < vWorker.max && iWait <= 0 && this.querySys.ifWsConnect){
 
                     try{
                         this.ask(sQueue, async(data:any) => {
@@ -243,7 +243,7 @@ export class MqClientSys {
                 }
                 
                 
-            }, 1);
+            }, Math.floor(1000/iWorkerMax)+1);
 
             while(bRun){
                 await mWait(1000*60);
