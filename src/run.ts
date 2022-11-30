@@ -89,7 +89,8 @@ const router = new AARoute();
     // console.log('Это вопрос от клиента')
 
     const data = gMqServerSys.get(ctx.body);
-    console.log('ask>>>',ctx.body, data)
+    process.stdout.write('.');
+    // console.log('ask>>>',ctx.body, data)
 
     // if(data){
 
