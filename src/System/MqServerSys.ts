@@ -476,15 +476,15 @@ export class MqServerSys {
                     vMsgDb.data = JSON.stringify(vMsg);
 
                     vMsgDb.send_time = vMsgInfo.send_time ? mFormatDateTime(vMsgInfo.send_time) : null;
-                    vMsgDb.send_app = vMsgInfo.send_app.slice(0,50);
+                    vMsgDb.send_app = vMsgInfo.send_app ? vMsgInfo.send_app.slice(0,50) : null;
                     vMsgDb.send_ip = vMsgInfo.send_ip;
 
                     vMsgDb.ask_time = vMsgInfo.ask_time ? mFormatDateTime(vMsgInfo.ask_time): null;
-                    vMsgDb.ask_app = vMsgInfo.ask_app.slice(0,50);
+                    vMsgDb.ask_app = vMsgInfo.ask_app ? vMsgInfo.ask_app.slice(0,50) : null;
                     vMsgDb.ask_ip = vMsgInfo.ask_ip;
 
                     vMsgDb.work_time = vMsgInfo.work_time ? mFormatDateTime(vMsgInfo.work_time): null;
-                    vMsgDb.work_app = vMsgInfo.work_app.slice(0,50);
+                    vMsgDb.work_app = vMsgInfo.work_app ? vMsgInfo.work_app.slice(0,50) : null;
                     vMsgDb.work_ip = vMsgInfo.work_ip;
                     aMqLog.push(vMsgDb);
                     
