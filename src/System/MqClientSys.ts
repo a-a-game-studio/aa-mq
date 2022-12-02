@@ -213,6 +213,7 @@ export class MqClientSys {
 
             const vWorker = this.ixWorker[sQueue];
 
+            const iInterval = Math.floor(1000/iWorkerMax)+1;
             vWorker.count = 0;
             vWorker.max = iWorkerMax;
             vWorker.interval = setInterval(async () => {
@@ -239,11 +240,11 @@ export class MqClientSys {
                 }
 
                 if(iWait >= 0){
-                    iWait--;
+                    iWait -= iInterval;
                 }
                 
                 
-            }, Math.floor(1000/iWorkerMax)+1);
+            }, iInterval);
 
             while(bRun){
                 await mWait(1000*60);
