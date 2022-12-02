@@ -3,8 +3,10 @@
 import { mWait } from "../Helper/WaitH";
 import { MqClientSys } from "../System/MqClientSys";
 
+import * as conf from '../Config/MainConfig'
+
 const mqClientSys = new MqClientSys({
-    baseURL: 'ws://127.0.0.1:8080',
+    baseURL: 'ws://127.0.0.1:'+conf.common.port,
     nameApp: 'test_client'
 })
 

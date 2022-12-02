@@ -117,6 +117,15 @@ const router = new AARoute();
 
 });
 
+/**
+ * Количество сообщений
+ */
+ router.ws(MsgT.connect, async (ctx: AAContext) => {
+
+    console.log('connect>>>',ctx.body);
+        return faSend(ctx, true);
+});
+
 
 
 

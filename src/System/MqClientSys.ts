@@ -8,6 +8,7 @@ import ip from 'ip'
 import { reject } from "lodash";
 import { mWait } from "../Helper/WaitH";
 import { MsgContextI, MsgT } from "../interface/CommonI";
+import { config } from "process";
 
 
 export class MqClientSys {
@@ -125,6 +126,27 @@ export class MqClientSys {
 	 * @param sQueue
 	 * @param msg
 	 */
+	public connect(): void {
+
+        const uidMsg = uuidv4();
+        const vMsg = {
+            uid:uidMsg,
+            app:this.conf.nameApp,
+            ip:ip.address(),
+            queue:'',
+            data:{},
+            time:Date.now()
+        }
+
+        this.querySys.fInit();
+        this.querySys.fSend(MsgT.connect, vMsg);
+	}
+
+    /**
+	 * Отправить сообщение в очередь
+	 * @param sQueue
+	 * @param msg
+	 */
 	public sendBuffer(sQueue: string, msg: any): void {
 
         if(Date.now() - this.iLastTimeSend < 100){
@@ -217,8 +239,15 @@ export class MqClientSys {
             vWorker.count = 0;
             vWorker.max = iWorkerMax;
             vWorker.interval = setInterval(async () => {
-             
-                if(vWorker.count < vWorker.max && iWait <= 0 && this.querySys.ifWsConnect){
+                // console.log('interval:', iWait, this.querySys.ifWsConnect())
+                // console.log(vWorker.count, vWorker.max, iWait, this.querySys.ifWsConnect())
+                if(iWait <= 0 && !this.querySys.ifWsConnect()){
+                    console.log('[watchWork]: - Подключение(5s)...')
+                    this.connect();
+                    iWait = 5000;
+                }
+                
+                if(vWorker.count < vWorker.max && iWait <= 0 && this.querySys.ifWsConnect()){
 
                     try{
                         this.ask(sQueue, async(data:any) => {

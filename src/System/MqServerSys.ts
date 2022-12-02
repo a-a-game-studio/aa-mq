@@ -527,7 +527,7 @@ export class MqServerSys {
 
             // Подсчет в секунду запросов
             const aSpeedAsk = Object.entries(vMqQueueC.ixSpeedAsk)
-            console.log(aSpeedAsk);
+            // console.log(aSpeedAsk);
             let iCntSpeedAsk = 0;
             let iTotSpeedAsk = 0;
             for (let j = 0; j < aSpeedAsk.length; j++) {
