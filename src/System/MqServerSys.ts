@@ -475,6 +475,17 @@ export class MqServerSys {
                     vMsgDb.server_ip = ip.address();
                     vMsgDb.data = JSON.stringify(vMsg);
 
+                    // Очень большие сообщениея
+                    if(vMsgDb.data.length > 30000){
+                        console.log(
+                            'Сообщение очень большое в лог запись не возможна:',
+                            ' que: ',vMsgDb.queue,
+                            ' app: ',vMsgInfo.send_app,
+                            ' ip: ', vMsgInfo.send_ip
+                        )
+                        continue;
+                    }
+
                     vMsgDb.send_time = vMsgInfo.send_time ? mFormatDateTime(vMsgInfo.send_time) : null;
                     vMsgDb.send_app = vMsgInfo.send_app ? vMsgInfo.send_app.slice(0,50) : null;
                     vMsgDb.send_ip = vMsgInfo.send_ip;
