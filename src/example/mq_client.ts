@@ -17,7 +17,7 @@ const mqClientSys = new MqClientSys({
 
 async function run(){
 
-    for (let i = 0; i < 10000; i++) {
+    for (let i = 0; i < 100; i++) {
         const sMsg = '['+i+'] СообщениЕ ['+i+']';
 
         mqClientSys.send('test', {text:sMsg});
@@ -32,6 +32,10 @@ async function run(){
 
     await mWait(1000);
 
+
+    const cnt1 = await mqClientSys.count('test');
+
+    console.log('cnt:',cnt1);
 
     console.log('=========================');
     console.log('END');

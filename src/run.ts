@@ -107,7 +107,7 @@ const router = new AARoute();
  router.ws(MsgT.count, async (ctx: AAContext) => {
 
     const data = gMqServerSys.count(ctx.body.queue);
-    console.log('count>>>',ctx.body, data)
+    // console.log('count>>>',ctx.body, data)
 
     // if(data){
         return faSend(ctx, data);
