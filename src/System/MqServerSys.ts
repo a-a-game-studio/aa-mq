@@ -195,8 +195,6 @@ export class MqServerSys {
             this.ixQueue[msg.queue] = new MqQueueC();
         }
 
-        process.stdout.write('.')
-
         const vMqQueueC = this.ixQueue[msg.queue];
 
         vMqQueueC.set(msg)
@@ -643,7 +641,9 @@ export class MqServerSys {
             }
             
         } else {
-            process.stdout.write('.');
+            if(conf.common.env == 'dev'){
+                process.stdout.write('.');
+            }
         }
 
         // Удаление учета отправленных сообщений
