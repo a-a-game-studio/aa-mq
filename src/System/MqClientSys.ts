@@ -253,7 +253,11 @@ export class MqClientSys {
                         this.ask(sQueue, async(data:any) => {
                             if(data){
                                 vWorker.count++;
-                                await cb(data);
+                                try {
+                                    await cb(data);
+                                } catch (e){
+                                    console.log('<<<ERROR workFunction>>>', e)
+                                }
                                 vWorker.count--;
                             } else {
                                 iWait = 1000;
