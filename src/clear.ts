@@ -13,10 +13,10 @@ async function run(){
     const dtClear1Month = mFormatDateTime(dayjs().subtract(1, 'month'));
     
 
-    const msgAsk = await db('msg').where('ask_time', '<', dtClear7Day).del();
+    const msgAsk = await db('msg').where('updated_at', '<', dtClear7Day).where('ask_time', '<', dtClear7Day).limit(1000000).del();
     console.log('Удалено записей обработанных спустя 7 дней:', msgAsk);
 
-    const msgNoAsk = await db('msg').where('updated_at', '<', dtClear1Month).whereNull('ask_time').del();
+    const msgNoAsk = await db('msg').where('updated_at', '<', dtClear1Month).whereNull('ask_time').limit(1000000).del();
     console.log('Удалено записей не обработанных спустя 1 месяц:', msgNoAsk);
 
     console.log('=========================');
