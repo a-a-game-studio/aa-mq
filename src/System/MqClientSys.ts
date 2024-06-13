@@ -16,28 +16,32 @@ export class MqClientSys {
     conf:{
         baseURL: string, // 'ws://127.0.0.1:8080',
         nameApp: string, // Наименование приложения
+        guaranteedDelivery?: boolean, // гарантированная доставка
     } = null;
 
     ixSendMsg:Record<string, MsgContextI> = {}; // Сообщения для отправки
     private vSendControl = setInterval(async () => {
-        const aSendMsg = Object.entries(this.ixSendMsg);
 
-        const iTime = Date.now();
-        for (let i = 0; i < aSendMsg.length; i++) {
-            const [uidMsg, vMsg] = aSendMsg[i];
+        if(this.conf.guaranteedDelivery){
+            const aSendMsg = Object.entries(this.ixSendMsg);
 
-            // для зависших соединений если прошло 10 секунд и соединение восстановилось
-            if(vMsg.time < iTime - 10000 && this.querySys.ifWsConnect()){
-                if(!this.ixSendBuffer[vMsg.queue]){
-                    this.ixSendBuffer[vMsg.queue] = [];
-                }
+            const iTime = Date.now();
+            for (let i = 0; i < aSendMsg.length; i++) {
+                const [uidMsg, vMsg] = aSendMsg[i];
 
-                // отправляем в буфер
-                this.ixSendBuffer[vMsg.queue].push(vMsg)
+                // для зависших соединений если прошло 10 секунд и соединение восстановилось
+                if(vMsg.time < iTime - 10000 && this.querySys.ifWsConnect()){
+                    if(!this.ixSendBuffer[vMsg.queue]){
+                        this.ixSendBuffer[vMsg.queue] = [];
+                    }
 
-                // Переодически отправляем сообщения
-                if(this.ixSendBuffer[vMsg.queue].length > 1000){
-                    this.endBuffer();
+                    // отправляем в буфер
+                    this.ixSendBuffer[vMsg.queue].push(vMsg)
+
+                    // Переодически отправляем сообщения
+                    if(this.ixSendBuffer[vMsg.queue].length > 1000){
+                        this.endBuffer();
+                    }
                 }
             }
         }
@@ -71,7 +75,11 @@ export class MqClientSys {
     constructor(conf:{
         baseURL: string, // 'ws://127.0.0.1:8080',
         nameApp: string, // Наименование приложения
+        guaranteedDelivery?:boolean
     }){
+        if(conf.guaranteedDelivery === undefined ) {
+            conf.guaranteedDelivery = true;
+        }
         this.querySys = new QuerySys()
         this.querySys.fConfigWs(conf);
         this.conf = conf;
@@ -80,8 +88,11 @@ export class MqClientSys {
     /** установка/переопределение опций для очереди */
     public option(option:{
         nameApp: string, // Наименование приложения
+        guaranteedDelivery?:boolean,
     }){
-        this.conf.nameApp = option.nameApp;
+        if(option.guaranteedDelivery !== undefined){
+            this.conf.guaranteedDelivery = option.guaranteedDelivery;
+        }
     }
 
 
@@ -101,16 +112,21 @@ export class MqClientSys {
             data:msg,
             time:Date.now()
         }
-        this.ixSendMsg[uidMsg] = vMsg;
+
+        if(this.conf.guaranteedDelivery){
+            this.ixSendMsg[uidMsg] = vMsg;
+        }
 
         this.querySys.fInit();
         this.querySys.fActionOk((data: string[]) => {
 
             this.iSendComplete++;
 
-            for (let i = 0; i < data.length; i++) {
-                const uid = data[i];
-                delete this.ixSendMsg[uid];
+            if(this.conf.guaranteedDelivery){
+                for (let i = 0; i < data.length; i++) {
+                    const uid = data[i];
+                    delete this.ixSendMsg[uid];
+                }
             }
         });
         this.querySys.fActionErr((err:any) => {
@@ -163,7 +179,9 @@ export class MqClientSys {
                 data:msg,
                 time:Date.now()
             };
-            this.ixSendMsg[uidMsg] = vMsg;
+            if(this.conf.guaranteedDelivery){
+                this.ixSendMsg[uidMsg] = vMsg;
+            }
 
             this.ixSendBuffer[sQueue].push(vMsg);
             this.iSendBufferCount++;
@@ -198,9 +216,11 @@ export class MqClientSys {
 
                 this.iSendComplete++;
 
-                for (let i = 0; i < data.length; i++) {
-                    const uid = data[i];
-                    delete this.ixSendMsg[uid];
+                if(this.conf.guaranteedDelivery){
+                    for (let i = 0; i < data.length; i++) {
+                        const uid = data[i];
+                        delete this.ixSendMsg[uid];
+                    }
                 }
                 
                 // process.stdout.write('.');
