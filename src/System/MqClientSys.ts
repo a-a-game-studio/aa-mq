@@ -22,7 +22,7 @@ export class MqClientSys {
     ixSendMsg:Record<string, MsgContextI> = {}; // Сообщения для отправки
     private vSendControl = setInterval(async () => {
 
-        if(this.conf.guaranteedDelivery){
+        if(this.conf.guaranteedDelivery && this.querySys.ifWsConnect()){
             const aSendMsg = Object.entries(this.ixSendMsg);
 
             const iTime = Date.now();
@@ -44,9 +44,10 @@ export class MqClientSys {
                     }
                 }
             }
-        }
 
-        this.endBuffer();
+            this.endBuffer();
+        }
+        
     }, 5000);
 
     private querySys:QuerySys = null;
