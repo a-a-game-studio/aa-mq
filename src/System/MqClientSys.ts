@@ -45,7 +45,9 @@ export class MqClientSys {
                 }
             }
 
-            this.endBuffer();
+            if(this.querySys.ifWsConnect()){
+                this.endBuffer();
+            }
         }
         
     }, 5000);
